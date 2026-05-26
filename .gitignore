@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Environment variable files. These files often contain sensitive information such as API keys, database connection strings, and other secrets. It's a good practice to exclude them from version control to prevent accidental exposure of sensitive data.
+.env
+.env.*
+!.env.example
+
+*.opus
