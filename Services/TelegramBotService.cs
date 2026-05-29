@@ -90,22 +90,47 @@ public class TelegramBotService(
 
         logger.LogInformation("Inline query from {User}: {Query}", query.From.Username, searchQuery);
 
-        var results = await youTubeSearch.SearchAsync(searchQuery, maxResults: 8, ct);
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var inlineResults = results.Select(r => new InlineQueryResultArticle(
-            id: r.VideoId,
-            title: r.Title,
-            inputMessageContent: new InputTextMessageContent($"🎵 {r.Title}\n📺 {r.ChannelName}")
-        )
+        var ytResults = await youTubeSearch.SearchAsync(searchQuery, maxResults: 8, ct);
+
+        var videoIds = ytResults.Select(r => r.VideoId).ToList();
+        var cachedTracks = await db.Tracks
+            .Where(t => videoIds.Contains(t.YoutubeId) && t.TelegramFileId != null)
+            .ToDictionaryAsync(t => t.YoutubeId, t => t.TelegramFileId!, ct);
+
+        var inlineResults = new List<InlineQueryResult>();
+
+        foreach (var r in ytResults)
         {
-            Description = r.ChannelName,
-            ThumbnailUrl = r.ThumbnailUrl,
-        }).ToList<InlineQueryResult>();
+            if (cachedTracks.TryGetValue(r.VideoId, out var fileId))
+            {
+                inlineResults.Add(new InlineQueryResultCachedAudio(
+                    id: r.VideoId,
+                    audioFileId: fileId
+                ));
+            }
+            else
+            {
+                inlineResults.Add(new InlineQueryResultArticle(
+                    id: r.VideoId,
+                    title: r.Title,
+                    inputMessageContent: new InputTextMessageContent(
+                        $"⏳ Скачиваю: *{r.Title}*\nАудио придёт в личных сообщениях бота.")
+                    { ParseMode = ParseMode.Markdown }
+                )
+                {
+                    Description = $"🎵 {r.ChannelName} · Нажми чтобы скачать",
+                    ThumbnailUrl = r.ThumbnailUrl,
+                });
+            }
+        }
 
         await bot.AnswerInlineQuery(
             query.Id,
             inlineResults,
-            cacheTime: 60, 
+            cacheTime: 30,
             cancellationToken: ct);
     }
 
@@ -114,39 +139,32 @@ public class TelegramBotService(
         if (!IsAllowed(chosen.From.Id)) return;
 
         var videoId = chosen.ResultId;
-        var youtubeUrl = $"https://www.youtube.com/watch?v={videoId}";
-        var chatId = chosen.From.Id;
-
-        logger.LogInformation("User {User} chose video {VideoId}", chosen.From.Username, videoId);
+        var chatId = chosen.From.Id; 
 
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var existingTrack = await db.Tracks.FirstOrDefaultAsync(t => t.YoutubeId == videoId, ct);
-
-        if (existingTrack is not null)
+        var existing = await db.Tracks.FirstOrDefaultAsync(t => t.YoutubeId == videoId, ct);
+        if (existing?.TelegramFileId is not null)
         {
-            logger.LogInformation("Track {Id} already exists, sending from storage.", videoId);
-            await SendAudioFromStorageAsync(bot, chatId, existingTrack, ct);
+            logger.LogInformation("Track {Id} already cached, inline audio was sent.", videoId);
+            return;
         }
-        else
+
+        var youtubeUrl = $"https://www.youtube.com/watch?v={videoId}";
+        logger.LogInformation("Queuing download for {VideoId} → chat {ChatId}", videoId, chatId);
+
+        var task = new DownloadTask
         {
-            await bot.SendMessage(chatId,
-                $"⏳ Скачиваю аудио...\nЭто займёт ~10-30 секунд.",
-                cancellationToken: ct);
+            Id = Guid.NewGuid(),
+            YoutubeUrl = youtubeUrl,
+            CreatedAt = DateTime.UtcNow
+        };
+        db.DownloadTasks.Add(task);
+        await db.SaveChangesAsync(ct);
 
-            var task = new DownloadTask
-            {
-                Id = Guid.NewGuid(),
-                YoutubeUrl = youtubeUrl,
-                CreatedAt = DateTime.UtcNow
-            };
-            db.DownloadTasks.Add(task);
-            await db.SaveChangesAsync(ct);
-
-            jobs.Enqueue<TelegramDownloadAndSendJob>(j =>
-                j.ExecuteAsync(task.Id, chatId, CancellationToken.None));
-        }
+        jobs.Enqueue<TelegramDownloadAndSendJob>(j =>
+            j.ExecuteAsync(task.Id, chatId, CancellationToken.None));
     }
 
     private async Task HandleMessageAsync(ITelegramBotClient bot, Message message, CancellationToken ct)
@@ -163,23 +181,26 @@ public class TelegramBotService(
             await bot.SendMessage(message.Chat.Id,
                 "🎵 *YtAudio Bot*\n\n" +
                 "Используй меня inline в любом чате:\n" +
-                "`@mybot название трека`\n\n" +
-                "Выбери видео из списка — я пришлю аудио.",
+                "`@botusername название трека`\n\n" +
+                "Уже скачанные треки появятся прямо как аудио.\n" +
+                "Новые — скачаются и придут сюда в личку.",
                 parseMode: ParseMode.Markdown,
                 cancellationToken: ct);
         }
     }
 
-    public static async Task SendAudioFromStorageAsync(
+    public static async Task<string> SendAudioFromStorageAsync(
         ITelegramBotClient bot, long chatId, Models.Track track, CancellationToken ct)
     {
         await using var stream = File.OpenRead(track.FilePath);
-        await bot.SendAudio(
+        var msg = await bot.SendAudio(
             chatId,
             InputFile.FromStream(stream, $"{track.Title}.{track.FileExtension}"),
             title: track.Title,
             performer: track.Artist,
             cancellationToken: ct);
+
+        return msg.Audio?.FileId ?? string.Empty;
     }
 
     private bool IsAllowed(long userId) => _allowedUserIds.Contains(userId);

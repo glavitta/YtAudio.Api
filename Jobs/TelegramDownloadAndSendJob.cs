@@ -33,7 +33,13 @@ public class TelegramDownloadAndSendJob(
             if (existing is not null)
             {
                 logger.LogInformation("Track {Id} already exists, sending from storage.", meta.YoutubeId);
-                await TelegramBotService.SendAudioFromStorageAsync(bot, chatId, existing, ct);
+
+                var fileId = await TelegramBotService.SendAudioFromStorageAsync(bot, chatId, existing, ct);
+                if (!string.IsNullOrEmpty(fileId) && existing.TelegramFileId is null)
+                {
+                    existing.TelegramFileId = fileId;
+                }
+
                 task.Status = DownloadStatus.Completed;
                 task.TrackId = existing.Id;
                 task.CompletedAt = DateTime.UtcNow;
@@ -41,6 +47,7 @@ public class TelegramDownloadAndSendJob(
                 return;
             }
 
+            logger.LogInformation("Downloading {Url} for chat {ChatId}", task.YoutubeUrl, chatId);
             var tempDir = storage.CreateTempDirectory();
             var tempFile = await ytDlp.DownloadBestAudioAsync(task.YoutubeUrl, tempDir, ct);
             var finalPath = storage.MoveToStorage(tempFile, meta.YoutubeId);
@@ -60,14 +67,20 @@ public class TelegramDownloadAndSendJob(
                 CreatedAt = DateTime.UtcNow
             };
 
+            logger.LogInformation("Sending audio {Title} to chat {ChatId}", track.Title, chatId);
+            var telegramFileId = await TelegramBotService.SendAudioFromStorageAsync(bot, chatId, track, ct);
+
+            if (!string.IsNullOrEmpty(telegramFileId))
+            {
+                track.TelegramFileId = telegramFileId;
+                logger.LogInformation("Cached Telegram file_id for {YoutubeId}", track.YoutubeId);
+            }
+
             db.Tracks.Add(track);
             task.Status = DownloadStatus.Completed;
             task.TrackId = track.Id;
             task.CompletedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
-
-            logger.LogInformation("Sending track {Title} to chat {ChatId}", track.Title, chatId);
-            await TelegramBotService.SendAudioFromStorageAsync(bot, chatId, track, ct);
         }
         catch (Exception ex)
         {

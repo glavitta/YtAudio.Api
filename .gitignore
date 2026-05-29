@@ -368,3 +368,4 @@ FodyWeavers.xsd
 !.env.example
 
 *.opus
+*.m4a

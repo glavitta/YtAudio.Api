@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -32,7 +33,8 @@ namespace YtAudio.Api.Services
             var args = string.Join(" ",
                 "-x",
                 "-f bestaudio",
-                "--audio-quality 0",
+                "--audio-format", "m4a", //
+            //    "--audio-quality 0",
                 "--no-playlist",
                 $"--ffmpeg-location \"{_ffmpegPath}\"",
                 $"-o \"{outputDir}/%(id)s.%(ext)s\"",

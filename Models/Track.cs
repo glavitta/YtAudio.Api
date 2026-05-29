@@ -14,5 +14,6 @@
         public long FileSizeBytes { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public string? TelegramFileId { get; set; }
     }
 }
