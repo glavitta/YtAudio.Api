@@ -81,10 +81,20 @@ public class TelegramBotService(
             return;
         }
 
-        var searchQuery = query.Query.Trim();
-        if (string.IsNullOrWhiteSpace(searchQuery))
+        const string Trigger = "??";
+
+        var raw = query.Query.Trim();
+
+        if(!raw.EndsWith(Trigger, StringComparison.OrdinalIgnoreCase))
         {
             await bot.AnswerInlineQuery(query.Id, [], cancellationToken: ct);
+            return;
+        }
+
+        var searchQuery = raw[..^Trigger.Length].Trim();
+        if (string.IsNullOrWhiteSpace(searchQuery))
+        {
+            await bot.AnswerInlineQuery(query.Id, [], cacheTime: 0, cancellationToken: ct);
             return;
         }
 

@@ -20,7 +20,6 @@ namespace YtAudio.Api.Services
             request.Q = query;
             request.MaxResults = maxResults;
             request.Type = "video";
-            request.VideoCategoryId = "10";
 
             logger.LogInformation("Youtube search: {Query}", query);
             var response = await request.ExecuteAsync(ct);
