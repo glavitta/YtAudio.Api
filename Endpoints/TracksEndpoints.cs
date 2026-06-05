@@ -33,7 +33,7 @@ namespace YtAudio.Api.Endpoints
 
                 var tracks = await query
                     .Select(t => new TrackDto(
-                        t.Id, t.YoutubeId, t.Title, t.Artist, t.ThumbnailUrl,
+                        t.Id, t.YoutubeId, t.Title, t.Artist, t.Album, t.ThumbnailUrl,
                         t.DurationSeconds, t.FileExtension, t.FileSizeBytes, t.CreatedAt))
                     .ToListAsync();
 
@@ -46,7 +46,7 @@ namespace YtAudio.Api.Endpoints
                 return t is null
                     ? Results.NotFound()
                     : Results.Ok(new TrackDto(
-                        t.Id, t.YoutubeId, t.Title, t.Artist, t.ThumbnailUrl,
+                        t.Id, t.YoutubeId, t.Title, t.Artist, t.Album, t.ThumbnailUrl,
                         t.DurationSeconds, t.FileExtension, t.FileSizeBytes, t.CreatedAt));
             });
 
@@ -103,6 +103,33 @@ namespace YtAudio.Api.Endpoints
                 return Results.NoContent();
             });
 
+            group.MapPatch("/{id:guid}", async (Guid id, UpdateTrackRequest req, AppDbContext db) =>
+            {
+                var track = await db.Tracks.FindAsync(id);
+                if (track is null) return Results.NotFound();
+
+                if (req.Title is not null)
+                {
+                    var trimmed = req.Title.Trim();
+                    if (trimmed.Length == 0)
+                        return Results.BadRequest(new { error = "Title cannot be empty." });
+                    track.Title = trimmed;
+                }
+
+                if (req.Artist is not null)
+                    track.Artist = req.Artist.Trim().Length > 0 ? req.Artist.Trim() : null;
+
+                if (req.Album is not null)
+                    track.Album = req.Album.Trim().Length > 0 ? req.Album.Trim() : null;
+
+                await db.SaveChangesAsync();
+
+                return Results.Ok(new TrackDto(
+                    track.Id, track.YoutubeId, track.Title, track.Artist, track.Album,
+                    track.ThumbnailUrl, track.DurationSeconds, track.FileExtension,
+                    track.FileSizeBytes, track.CreatedAt));
+            });
+
             group.MapGet("/stats", (FileStorageService storage) => Results.Ok(storage.GetStats()))
                  .WithName("GetStats");
 
@@ -110,11 +137,14 @@ namespace YtAudio.Api.Endpoints
         }
     }
 
+    public record UpdateTrackRequest(string? Title, string? Artist, string? Album);
+
     public record TrackDto(
         Guid Id,
         string YoutubeId,
         string Title,
         string? Artist,
+        string? Album,
         string? ThumbnailUrl,
         long DurationSeconds,
         string FileExtension,
