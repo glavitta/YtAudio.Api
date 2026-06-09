@@ -108,19 +108,31 @@ namespace YtAudio.Api.Endpoints
                 var track = await db.Tracks.FindAsync(id);
                 if (track is null) return Results.NotFound();
 
+                var metadataChanged = false;
+
                 if (req.Title is not null)
                 {
                     var trimmed = req.Title.Trim();
                     if (trimmed.Length == 0)
                         return Results.BadRequest(new { error = "Title cannot be empty." });
                     track.Title = trimmed;
+                    metadataChanged = true;
                 }
 
                 if (req.Artist is not null)
+                {
                     track.Artist = req.Artist.Trim().Length > 0 ? req.Artist.Trim() : null;
+                    metadataChanged = true;
+                }
 
                 if (req.Album is not null)
+                {
                     track.Album = req.Album.Trim().Length > 0 ? req.Album.Trim() : null;
+                    metadataChanged = true;
+                }
+
+                if (metadataChanged)
+                    track.TelegramFileId = null;
 
                 await db.SaveChangesAsync();
 

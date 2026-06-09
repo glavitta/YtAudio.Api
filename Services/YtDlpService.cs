@@ -33,8 +33,9 @@ namespace YtAudio.Api.Services
             var args = string.Join(" ",
                 "-x",
                 "-f bestaudio",
-                "--audio-format", "m4a", //
-            //    "--audio-quality 0",
+                "--audio-format", "m4a",
+                "--embed-thumbnail",   // встраиваем обложку прямо в файл
+                "--add-metadata",      // тег title/artist/etc
                 "--no-playlist",
                 $"--ffmpeg-location \"{_ffmpegPath}\"",
                 $"-o \"{outputDir}/%(id)s.%(ext)s\"",
@@ -45,7 +46,7 @@ namespace YtAudio.Api.Services
 
             var file = Directory
                 .EnumerateFiles(outputDir)
-                .Where(f => !f.EndsWith(".part")) 
+                .Where(f => !f.EndsWith(".part"))
                 .OrderByDescending(File.GetLastWriteTimeUtc)
                 .FirstOrDefault();
 
