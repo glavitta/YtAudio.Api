@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -34,8 +33,8 @@ namespace YtAudio.Api.Services
                 "-x",
                 "-f bestaudio",
                 "--audio-format", "m4a",
-                "--embed-thumbnail",   // встраиваем обложку прямо в файл
-                "--add-metadata",      // тег title/artist/etc
+                "--embed-thumbnail",   
+                "--add-metadata",     
                 "--no-playlist",
                 $"--ffmpeg-location \"{_ffmpegPath}\"",
                 $"-o \"{outputDir}/%(id)s.%(ext)s\"",
