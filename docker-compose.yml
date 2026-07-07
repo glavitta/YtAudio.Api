@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ytaudio-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ytaudio
+      POSTGRES_USER: ytaudio
+      # CHANGE THIS — or better, use a .env file (see .env.example)
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_local}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ytaudio"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
