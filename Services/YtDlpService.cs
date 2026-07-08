@@ -20,6 +20,7 @@ namespace YtAudio.Api.Services
                 YoutubeId = root.GetProperty("id").GetString()!,
                 Title = root.GetProperty("title").GetString()!,
                 Artist = root.TryGetProperty("uploader", out var uploader) ? uploader.GetString() : null,
+                Album = root.TryGetProperty("album", out var album) ? album.GetString() : null,
                 ThumbnailUrl = root.TryGetProperty("thumbnail", out var thumb) ? thumb.GetString() : null,
                 DurationSeconds = root.TryGetProperty("duration", out var dur) && dur.ValueKind == JsonValueKind.Number
                 ? (long)dur.GetDouble()
@@ -96,6 +97,7 @@ namespace YtAudio.Api.Services
         public string YoutubeId { get; init; } = default!;
         public string Title { get; init; } = default!;
         public string? Artist { get; init; }
+        public string? Album  { get; init; }
         public string? ThumbnailUrl { get; init; }
         public long DurationSeconds { get; init; }
     }
