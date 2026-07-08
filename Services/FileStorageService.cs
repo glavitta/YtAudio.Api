@@ -36,9 +36,7 @@ namespace YtAudio.Api.Services
         public string MoveToStorage(string tempFilePath, string youtubeId, string title, string? artist, string? album)
         {
             var ext = Path.GetExtension(tempFilePath);
-           
-            //var fileName = BuildFileName(youtubeId, title, artist, album) + ext;
-            var fileName = title;
+            var fileName = BuildFileName(youtubeId, title) + ext;
 
             var destination = MakeUnique(Path.Combine(_storageRoot, fileName));
 
@@ -76,15 +74,9 @@ namespace YtAudio.Api.Services
             };
         }
 
-        private static string BuildFileName(string youtubeId, string title, string? artist, string? album)
+        private static string BuildFileName(string youtubeId, string title)
         {
             var parts = new List<string>();
-
-            if (!string.IsNullOrWhiteSpace(artist))
-                parts.Add(SanitizeComponent(artist));
-
-            if (!string.IsNullOrWhiteSpace(album))
-                parts.Add(SanitizeComponent(album));
 
             var titlePart = !string.IsNullOrWhiteSpace(title) ? SanitizeComponent(title) : youtubeId;
             parts.Add(titlePart);
