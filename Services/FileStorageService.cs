@@ -36,7 +36,10 @@ namespace YtAudio.Api.Services
         public string MoveToStorage(string tempFilePath, string youtubeId, string title, string? artist, string? album)
         {
             var ext = Path.GetExtension(tempFilePath);
-            var fileName = BuildFileName(youtubeId, title, artist, album) + ext;
+           
+            //var fileName = BuildFileName(youtubeId, title, artist, album) + ext;
+            var fileName = title;
+
             var destination = MakeUnique(Path.Combine(_storageRoot, fileName));
 
             File.Move(tempFilePath, destination, overwrite: false);
