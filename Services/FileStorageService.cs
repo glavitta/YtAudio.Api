@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace YtAudio.Api.Services
 {
     public class FileStorageService
@@ -5,6 +7,9 @@ namespace YtAudio.Api.Services
         private readonly string _storageRoot;
         private readonly string _tempRoot;
         private readonly ILogger<FileStorageService> _logger;
+
+        private static readonly char[] InvalidNameChars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|'];
+        private const int MaxFileNameLength = 150;
 
         public FileStorageService(IConfiguration config, ILogger<FileStorageService> logger)
         {
@@ -19,7 +24,6 @@ namespace YtAudio.Api.Services
             Directory.CreateDirectory(_tempRoot);
 
             logger.LogInformation("Storage root: {Root}", _storageRoot);
-
         }
 
         public string CreateTempDirectory()
@@ -29,12 +33,14 @@ namespace YtAudio.Api.Services
             return dir;
         }
 
-        public string MoveToStorage(string tempFilePath, string youtubeId)
+        public string MoveToStorage(string tempFilePath, string youtubeId, string title, string? artist, string? album)
         {
             var ext = Path.GetExtension(tempFilePath);
             var fileName = BuildFileName(youtubeId, title) + ext;
 
-            File.Move(tempFilePath, destination, overwrite: true);
+            var destination = MakeUnique(Path.Combine(_storageRoot, fileName));
+
+            File.Move(tempFilePath, destination, overwrite: false);
             _logger.LogInformation("Stored track {Id} → {Path}", youtubeId, destination);
 
             var tempDir = Path.GetDirectoryName(tempFilePath);
