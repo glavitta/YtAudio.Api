@@ -68,15 +68,9 @@ namespace YtAudio.Api.Services
             };
         }
 
-        private static string BuildFileName(string youtubeId, string title, string? artist, string? album)
+        private static string BuildFileName(string youtubeId, string title)
         {
             var parts = new List<string>();
-
-            if (!string.IsNullOrWhiteSpace(artist))
-                parts.Add(SanitizeComponent(artist));
-
-            if (!string.IsNullOrWhiteSpace(album))
-                parts.Add(SanitizeComponent(album));
 
             var titlePart = !string.IsNullOrWhiteSpace(title) ? SanitizeComponent(title) : youtubeId;
             parts.Add(titlePart);
