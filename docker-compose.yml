@@ -9,7 +9,7 @@ services:
       POSTGRES_DB: ytaudio
       POSTGRES_USER: ytaudio
       # CHANGE THIS — or better, use a .env file (see .env.example)
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
