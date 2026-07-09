@@ -12,7 +12,15 @@ namespace YtAudio.Api.Services
 
         public async Task<YtDlpMetadata> GetMetadataAsync(string url, CancellationToken ct = default)
         {
-            var json = await RunAsync($"--dump-json --no-download \"{url}\"", ct);
+            var args = string.Join(" ",
+                "--dump-json",
+                "--no-download",
+                $"--js-runtimes node:\"{_nodePath}\"",
+                "--cookies-from-browser firefox",
+                $"--ffmpeg-location \"{_ffmpegPath}\"",
+                $"\"{url}\"");
+            var json = await RunAsync(args, ct);
+
             var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
@@ -45,6 +53,9 @@ namespace YtAudio.Api.Services
                 $"-o \"{outputDir}/%(id)s.%(ext)s\"",
                 $"\"{url}\""
             );
+
+            logger.LogCritical("yt-dlp args: {Args}", args);
+            logger.LogCritical("Node path: {NodePath}", _nodePath);
 
             await RunAsync(args, ct);
 
