@@ -8,6 +8,7 @@ namespace YtAudio.Api.Services
     {
         private readonly string _ytDlpPath = config["YtDlp:ExecutablePath"] ?? "yt-dlp";
         private readonly string _ffmpegPath = config["YtDlp:FfmpegPath"] ?? "ffmpeg";
+        private readonly string _nodePath = config["YtDlp:NodePath"] ?? "node";
 
         public async Task<YtDlpMetadata> GetMetadataAsync(string url, CancellationToken ct = default)
         {
@@ -38,7 +39,7 @@ namespace YtAudio.Api.Services
                 "--add-metadata",
                 "--convert-thumbnails jpg",
                 "--no-playlist",
-                "--js-runtimes node",
+                $"--js-runtimes \"{_nodePath}\"",
                 $"--cookies-from-browser firefox",
                 $"--ffmpeg-location \"{_ffmpegPath}\"",
                 $"-o \"{outputDir}/%(id)s.%(ext)s\"",
