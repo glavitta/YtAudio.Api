@@ -38,9 +38,10 @@ namespace YtAudio.Api.Services
                 "--add-metadata",
                 "--convert-thumbnails jpg",
                 "--no-playlist",
+                "--js-runtimes node",
+                $"--cookies-from-browser firefox",
                 $"--ffmpeg-location \"{_ffmpegPath}\"",
                 $"-o \"{outputDir}/%(id)s.%(ext)s\"",
-                $"--cookies-from-browser firefox",
                 $"\"{url}\""
             );
 
