@@ -40,6 +40,7 @@ namespace YtAudio.Api.Services
                 "--no-playlist",
                 $"--ffmpeg-location \"{_ffmpegPath}\"",
                 $"-o \"{outputDir}/%(id)s.%(ext)s\"",
+                $"--cookies-from-browser firefox",
                 $"\"{url}\""
             );
 
